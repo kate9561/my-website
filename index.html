@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>小鸡生图工作台</title>
+    <link rel="stylesheet" href="styles.css?v=20260815-1035" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="poster">
+        <div class="posterShade"></div>
+        <div class="posterCopy">
+          <p class="eyebrow">东方影像 · AI 造境</p>
+          <h1>大道生图</h1>
+          <p>把人物、场景、物件素材交给画面，让提示词定气质，生成更接近你想要的国风影像。</p>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <form id="generateForm" class="panel">
+          <div class="panelTitle">
+            <span>创作参数</span>
+            <small>Prompt & References</small>
+          </div>
+
+          <label class="field full">
+            <span>画面提示词</span>
+            <textarea id="prompt" name="prompt" rows="8" placeholder="例如：宋代书房内，一位身着素色汉服的女子临窗焚香，案上有古琴、竹简与青瓷茶盏，水墨留白，细腻光影，东方雅致"></textarea>
+          </label>
+
+          <div class="quickPrompts" aria-label="提示词风格">
+            <button type="button" data-prompt="水墨留白，宣纸肌理，远山如黛，雅致克制，东方审美">水墨留白</button>
+            <button type="button" data-prompt="宋代美学，素雅配色，瓷器、香炉、木案，安静高级">宋韵雅集</button>
+            <button type="button" data-prompt="敦煌壁画色彩，飞天纹样，矿物颜料质感，庄重华美">敦煌华彩</button>
+            <button type="button" data-prompt="国风人物写真，汉服细节，柔和自然光，真实摄影质感">国风写真</button>
+          </div>
+
+          <div class="grid">
+            <label class="field">
+              <span>模型</span>
+              <select id="model" name="model">
+                <option value="gpt-image-2">gpt-image-2</option>
+                <option value="nano_banana_2">nano_banana_2</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>数量</span>
+              <input id="count" name="count" type="number" min="1" max="4" value="1" />
+            </label>
+
+            <label class="field">
+              <span>比例</span>
+              <select id="aspectRatio" name="aspectRatio">
+                <option value="1:1">1:1</option>
+                <option value="16:9">16:9</option>
+                <option value="9:16">9:16</option>
+                <option value="4:3">4:3</option>
+                <option value="3:4">3:4</option>
+                <option value="21:9">21:9</option>
+                <option value="auto">自动</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>尺寸</span>
+              <select id="size" name="size">
+                <option value="auto">按比例自动</option>
+                <option value="1024x1024">1024x1024</option>
+                <option value="1024x1536">1024x1536</option>
+                <option value="1536x1024">1536x1024</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>质量</span>
+              <select id="quality" name="quality">
+                <option value="auto">自动</option>
+                <option value="standard">standard</option>
+                <option value="hd">hd</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field full">
+            <span>上传图片素材</span>
+            <div class="uploadBox">
+              <input id="assetFiles" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple />
+              <div>
+                <strong>选择人物、产品、场景或纹样图</strong>
+                <small>最多 8 张，会和提示词一起作为参考图提交。</small>
+              </div>
+            </div>
+            <div id="assetPreview" class="assetPreview"></div>
+          </label>
+
+          <label class="field full">
+            <span>参考图 URL</span>
+            <textarea id="references" rows="3" placeholder="可选。每行一个图片直链；可与上传图片同时使用，总数最多 8 个。"></textarea>
+          </label>
+
+          <div class="actions">
+            <button id="submitButton" type="submit">生成图片</button>
+            <button id="clearButton" type="button" class="ghost">清空结果</button>
+            <span id="keyStatus" class="status">正在检查密钥</span>
+          </div>
+          <div id="message" class="message" role="status"></div>
+        </form>
+
+        <form id="songForm" class="panel songPanel" onsubmit="return false">
+          <div class="panelTitle">
+            <span>参考音频改词成曲</span>
+            <small>Keep Audio, Change Lyrics</small>
+          </div>
+
+          <label class="field full">
+            <span>上传音频或视频文件提取参考音频</span>
+            <div class="uploadBox audioUpload">
+              <div>
+                <strong>选择音频文件，或上传视频自动抽取音频</strong>
+                <small>支持 MP3/WAV/M4A 和 MP4/MOV/MKV/AVI/WEBM/FLV/M4V，提取后作为成曲参考音频。</small>
+              </div>
+              <input id="audioFile" type="file" accept="audio/*,video/*,.mp4,.mov,.mkv,.avi,.webm,.flv,.m4v" onchange="window.handleReferenceFilePicked && window.handleReferenceFilePicked(this.files && this.files[0])" />
+            </div>
+          </label>
+
+          <label class="field full">
+            <span>从视频链接提取参考音频</span>
+            <div class="urlExtract">
+              <textarea id="videoUrl" rows="3" placeholder="粘贴视频分享链接，支持能被解析的视频链接。抖音、B站、视频号等平台可能需要公开链接或登录权限。"></textarea>
+              <button id="extractUrlButton" type="button">提取音频</button>
+            </div>
+          </label>
+
+          <div id="audioPreview" class="audioPreview" aria-live="polite" tabindex="0">
+            <div class="referenceEmpty">
+              <strong>参考音频确认区</strong>
+              <span>上传音频、拖入文件或粘贴音频/视频文件后，会在这里显示播放器和文件名。</span>
+            </div>
+          </div>
+
+          <label class="field full">
+            <span>新歌词（可选）</span>
+            <textarea id="lyricsInput" rows="12" placeholder="可以不填。只提交参考音频时，网站会自动创作一份可唱新歌词；也可以在这里直接粘贴你自己的新歌词。"></textarea>
+          </label>
+
+          <label class="field full">
+            <span>歌名</span>
+            <input id="songTitle" type="text" placeholder="可选，例如：大道" />
+          </label>
+
+          <label class="field full">
+            <span>改词要求</span>
+            <textarea id="songTheme" rows="3" placeholder="只描述歌词怎么改，例如：保留宿命感，副歌更有记忆点。音乐效果会完全按参考音频。"></textarea>
+          </label>
+
+          <div class="actions">
+            <button id="adaptLyricsButton" type="button">AI改写歌词（可选）</button>
+            <button id="previewSongButton" type="button" class="ghost" onclick="window.submitSong && window.submitSong(true)">极速试听小样</button>
+            <button id="createSongButton" type="button" onclick="window.submitSong && window.submitSong(false)">保成曲生成完整新曲</button>
+            <span id="songStatus" class="status">等待参考音频和新歌词</span>
+          </div>
+          <p class="previewGuide">极速试听会优先排队生成轻量小样；提交新歌词后默认直接按参考音频成曲，不会自动改写。需要润色时再点“AI改写歌词（可选）”。</p>
+          <div id="songMessage" class="message" role="status"></div>
+        </form>
+      </section>
+
+      <section class="results">
+        <div class="resultHeader">
+          <div>
+            <p class="eyebrow">生成画卷</p>
+            <h2>生成结果</h2>
+          </div>
+          <span id="runStatus" class="pill">待生成</span>
+        </div>
+
+        <div id="emptyState" class="empty">
+          <div class="emptyArt"></div>
+          <p>图片会出现在这里。</p>
+        </div>
+
+        <div id="gallery" class="gallery" aria-live="polite"></div>
+
+        <details class="logBox">
+          <summary>查看接口返回</summary>
+          <pre id="rawOutput">{}</pre>
+        </details>
+
+        <div class="songResults">
+          <div class="resultHeader compact">
+            <div>
+              <p class="eyebrow">歌曲结果</p>
+              <h2>成曲</h2>
+            </div>
+          </div>
+          <div id="songProgress" class="songProgress">
+            <div class="progressMeta">
+              <span id="songProgressText">等待提交</span>
+              <span id="songTaskId"></span>
+            </div>
+            <div class="progressTrack">
+              <div id="songProgressBar" class="progressBar"></div>
+            </div>
+            <div id="songOutputDir" class="outputDir"></div>
+          </div>
+          <div id="songOutput" class="songOutput">歌曲会出现在这里。</div>
+          <details class="logBox">
+            <summary>查看成曲接口返回</summary>
+            <pre id="songRawOutput">{}</pre>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      window.showReferenceFileImmediately = function (file) {
+        var box = document.getElementById("audioPreview");
+        if (!box || !file) return;
+        box.innerHTML = '<div class="referenceReady referencePending"><strong>已选中参考音频</strong><p>文件名：' +
+          String(file.name || "reference").replace(/[&<>"']/g, function (m) {
+            return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m];
+          }) +
+          '</p><p>正在读取文件，马上显示播放器并在后台保存。</p></div>';
+      };
+      window.handleReferenceFilePicked = function (file) {
+        window.showReferenceFileImmediately(file);
+        if (window.acceptReferenceFile) window.acceptReferenceFile(file, "上传音频");
+      };
+    </script>
+    <script src="app.js?v=20260815-1035" type="module"></script>
+  </body>
+</html>
